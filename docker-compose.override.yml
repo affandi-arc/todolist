@@ -1,0 +1,31 @@
+# docker-compose.override.yml
+# File ini akan otomatis 'menimpa' setting di docker-compose.yml
+# saat Anda menjalankan 'docker compose up'
+
+services:
+  app: # Nama service HARUS SAMA dengan di file utama (app)
+
+    # 1. Paksa Docker untuk menggunakan stage 'builder'
+    #    Kita butuh compiler Rust, bukan binary 'runtime'
+    build:
+      target: builder
+
+    # 2. Ini adalah 'Hot Reload'
+    #    Mount kode lokal Anda langsung ke dalam kontainer
+    volumes:
+      - .:/usr/src/app
+      # (Opsional) Cache dependensi cargo agar lebih cepat
+      - cargo-cache:/usr/local/cargo/registry
+
+    # 3. Ganti perintah 'CMD'
+    #    Jalankan 'cargo watch' untuk memonitor perubahan file
+    #    dan otomatis menjalankan 'cargo run'
+    command: ["cargo", "watch", "-q", "-x", "run"]
+
+    # (Opsional) Tambahkan env var untuk logging debug
+    environment:
+      - RUST_LOG=debug
+
+volumes:
+  # Definisikan volume cache yang kita buat di atas
+  cargo-cache:

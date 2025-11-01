@@ -1,0 +1,63 @@
+# Gunakan versi 3.8 atau yang lebih baru
+version: '3.8'
+
+services:
+  # 1. Layanan Aplikasi Rust Anda
+  app:
+    # Nama kontainer agar mudah diidentifikasi
+    container_name: todolist-app
+    # Build image menggunakan Dockerfile di folder ini (.)
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Mulai ulang otomatis kecuali dihentikan manual
+    restart: unless-stopped
+    # Port mapping: [Port di Mesin Anda]:[Port di Dalam Kontainer]
+    # Sesuaikan 8000 dengan port yang digunakan di aplikasi Rust Anda
+    ports:
+      - "8180:8180"
+    # Variabel lingkungan untuk aplikasi Rust Anda
+    environment:
+      # Sediakan URL database agar aplikasi Rust bisa terhubung
+      # 'db' adalah nama layanan database di bawah
+      # Ganti 'user_db', 'password_db', dan 'nama_db'
+      - DATABASE_URL=mysql://user:user@db:3306/todolist
+    # Pastikan layanan 'db' dimulai SEBELUM layanan 'app'
+    depends_on:
+      - db
+    # Hubungkan ke jaringan 'app-net'
+    networks:
+      - app-net
+
+  # 2. Layanan Database MySQL
+  db:
+    # Gunakan image mysql:lts seperti yang Anda minta
+    image: mysql:lts
+    container_name: todolist-db
+    restart: unless-stopped
+    # Variabel lingkungan untuk mengkonfigurasi MySQL
+    # !!! GANTI SEMUA NILAI 'ganti_dengan_...' !!!
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: todolist
+      MYSQL_USER: user
+      MYSQL_PASSWORD: user
+    # Simpan data database di volume agar tidak hilang saat kontainer di-restart
+    volumes:
+      - db-data:/var/lib/mysql
+    # Hubungkan ke jaringan 'app-net'
+    networks:
+      - app-net
+    # (Opsional) Uncomment baris ini jika Anda ingin mengakses DB
+    # dari luar Docker (misal: via DBeaver) di port 3307
+    ports:
+      - "3307:3306"
+
+# Mendefinisikan volume yang digunakan di atas
+volumes:
+  db-data: {}
+
+# Mendefinisikan jaringan kustom
+networks:
+  app-net:
+    driver: bridge

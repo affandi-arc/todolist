@@ -1,0 +1,17 @@
+[package]
+name = "todolist"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mysql = "25.0.0"
+tokio = { version = "1", features = ["full"] }
+axum = "0.7"
+sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls", "mysql", "chrono", "macros" ] }
+serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+dotenvy = "0.15"
+openssl = { version = "0.10" }
+async-trait = "0.1"
+thiserror = "1.0"
+serde_json = "1.0"
