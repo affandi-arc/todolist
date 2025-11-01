@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD Todolist</title>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 20px auto;
+            max-width: 900px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+
+        /* Formulir */
+        .form-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        @media (min-width: 600px) {
+            form {
+                grid-template-columns: 1fr 1fr;
+            }
+            .form-group-full {
+                grid-column: 1 / -1;
+            }
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .form-group input, .form-group textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .form-buttons {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        button[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            flex-grow: 1;
+        }
+        #cancel-edit-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        .hidden {
+            display: none;
+        }
+
+        /* Tabel */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+            word-break: break-word;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        /* Tombol Aksi */
+        .action-btn {
+            margin-right: 5px;
+            padding: 5px 8px;
+            font-size: 0.85rem;
+        }
+        .edit-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Aplikasi Todolist (CRUD)</h1>
+
+<div class="form-container">
+    <h2 id="form-title">Buat Todo Baru</h2>
+    <form id="todo-form">
+        <input type="hidden" id="todo-id">
+
+        <div class="form-group">
+            <label for="judul">Judul</label>
+            <input type="text" id="judul" name="judul" required>
+        </div>
+
+        <div class="form-group">
+            <label for="tanggal">Tanggal</label>
+            <input type="date" id="tanggal" name="tanggal" required>
+        </div>
+
+        <div class="form-group form-group-full">
+            <label for="isi">Isi</label>
+            <textarea id="isi" name="isi" rows="3"></textarea>
+        </div>
+
+        <div class="form-buttons">
+            <button type="submit" id="submit-btn">Simpan</button>
+            <button type="button" id="cancel-edit-btn" class="hidden">Batal Edit</button>
+        </div>
+    </form>
+</div>
+
+<h2>Daftar Todolist</h2>
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Judul</th>
+        <th>Isi</th>
+        <th>Tanggal</th>
+        <th>Aksi</th>
+    </tr>
+    </thead>
+    <tbody id="todo-list">
+    </tbody>
+</table>
+
+<script>
+    const API_URL = 'http://localhost:8180/todos';
+
+    // Referensi Elemen DOM
+    const todoListBody = document.getElementById('todo-list');
+    const todoForm = document.getElementById('todo-form');
+    const todoIdInput = document.getElementById('todo-id');
+    const judulInput = document.getElementById('judul');
+    const isiInput = document.getElementById('isi');
+    const tanggalInput = document.getElementById('tanggal');
+    const formTitle = document.getElementById('form-title');
+    const submitBtn = document.getElementById('submit-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+    // ===================================================
+    // (R)EAD - Fungsi untuk fetch dan tampilkan data
+    // ===================================================
+    async function fetchTodos() {
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error('Gagal mengambil data');
+
+            const todos = await response.json();
+
+            todoListBody.innerHTML = ''; // Kosongkan tabel
+
+            if (todos.length === 0) {
+                todoListBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada data.</td></tr>';
+                return;
+            }
+
+            todos.forEach(todo => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                        <td>${todo.id}</td>
+                        <td>${todo.judul}</td>
+                        <td>${todo.isi}</td>
+                        <td>${todo.tanggal}</td>
+                        <td>
+                            <button class="action-btn edit-btn" data-id="${todo.id}">Edit</button>
+                            <button class="action-btn delete-btn" data-id="${todo.id}">Hapus</button>
+                        </td>
+                    `;
+                todoListBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error (READ):', error);
+            todoListBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: red;">${error.message}</td></tr>`;
+        }
+    }
+
+    // ===================================================
+    // Helper - Reset Form ke mode "Create"
+    // ===================================================
+    function resetForm() {
+        todoForm.reset();
+        todoIdInput.value = '';
+        formTitle.textContent = 'Buat Todo Baru';
+        submitBtn.textContent = 'Simpan';
+        cancelEditBtn.classList.add('hidden');
+    }
+
+    // ===================================================
+    // Helper - Isi Form untuk mode "Update"
+    // ===================================================
+    async function populateFormForEdit(id) {
+        try {
+            const response = await fetch(`${API_URL}/${id}`);
+            if (!response.ok) throw new Error('Gagal mengambil data todo');
+
+            const todo = await response.json();
+
+            // Isi form
+            todoIdInput.value = todo.id;
+            judulInput.value = todo.judul;
+            isiInput.value = todo.isi;
+            tanggalInput.value = todo.tanggal;
+
+            // Ubah UI form ke mode edit
+            formTitle.textContent = 'Edit Todo';
+            submitBtn.textContent = 'Update';
+            cancelEditBtn.classList.remove('hidden');
+
+            // Scroll ke atas agar form terlihat
+            window.scrollTo(0, 0);
+
+        } catch (error) {
+            console.error('Error (Populate Form):', error);
+            alert(`Gagal memuat data untuk diedit: ${error.message}`);
+        }
+    }
+
+    // ===================================================
+    // Event Listener: Halaman dimuat
+    // ===================================================
+    document.addEventListener('DOMContentLoaded', fetchTodos);
+
+    // ===================================================
+    // Event Listener: Form Submit (untuk Create & Update)
+    // ===================================================
+    todoForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Mencegah reload halaman
+
+        const id = todoIdInput.value;
+        const payload = {
+            judul: judulInput.value,
+            isi: isiInput.value,
+            tanggal: tanggalInput.value,
+        };
+
+        try {
+            let response;
+            if (id) {
+                // --- (U)PDATE ---
+                response = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            } else {
+                // --- (C)REATE ---
+                response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            }
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || 'Gagal menyimpan data');
+            }
+
+            resetForm();
+            fetchTodos(); // Refresh tabel
+
+        } catch (error) {
+            console.error('Error (CREATE/UPDATE):', error);
+            alert(`Error: ${error.message}`);
+        }
+    });
+
+    // ===================================================
+    // Event Listener: Tombol di Tabel (Edit & Delete)
+    // ===================================================
+    todoListBody.addEventListener('click', async (e) => {
+        const target = e.target;
+
+        if (target.classList.contains('edit-btn')) {
+            // --- Tombol EDIT ---
+            const id = target.dataset.id;
+            populateFormForEdit(id);
+
+        } else if (target.classList.contains('delete-btn')) {
+            // --- (D)ELETE ---
+            const id = target.dataset.id;
+
+            if (confirm('Apakah Anda yakin ingin menghapus todo ini?')) {
+                try {
+                    const response = await fetch(`${API_URL}/${id}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.error || 'Gagal menghapus data');
+                    }
+
+                    fetchTodos(); // Refresh tabel
+
+                } catch (error) {
+                    console.error('Error (DELETE):', error);
+                    alert(`Error: ${error.message}`);
+                }
+            }
+        }
+    });
+
+    // ===================================================
+    // Event Listener: Tombol Batal Edit
+    // ===================================================
+    cancelEditBtn.addEventListener('click', resetForm);
+
+</script>
+</body>
+</html>
