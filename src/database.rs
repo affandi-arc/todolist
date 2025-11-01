@@ -1,7 +1,6 @@
 use sqlx::{mysql::{MySqlPool, MySqlPoolOptions}, MySql, Pool};
 use std::env;
 
-// Tipe alias untuk pool kita
 pub type DbPool = Pool<MySql>;
 
 pub async fn create_pool() -> Result<DbPool, sqlx::Error> {
@@ -15,13 +14,30 @@ pub async fn create_pool() -> Result<DbPool, sqlx::Error> {
 }
 
 pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::Error> {
+    // 1. Buat tabel 'users'
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255) NOT NULL UNIQUE,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL
+        )
+        "#,
+    )
+        .execute(pool)
+        .await?;
+
+    // 2. Buat tabel 'todos'
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS todos (
             id INT AUTO_INCREMENT PRIMARY KEY,
             judul VARCHAR(255) NOT NULL,
             isi TEXT,
-            tanggal DATE NOT NULL
+            tanggal DATE NOT NULL,
+            user_id INT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
         "#,
     )
